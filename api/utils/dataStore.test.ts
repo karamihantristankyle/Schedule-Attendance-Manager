@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { checkInStudent, createSchedule, createSubject, createUser, openAttendanceSession, resetStore, upsertAttendanceStatus } from './dataStore'
+import { checkInStudent, createSchedule, createSubject, createUser, enrollStudentInSubject, getTeacherDashboard, openAttendanceSession, resetStore, upsertAttendanceStatus } from './dataStore'
 
 describe('attendance store', () => {
   it('opens a new session when schedule has no active session', () => {
@@ -86,5 +86,44 @@ describe('attendance store', () => {
     const entry = upsertAttendanceStatus('teacher', 2, 1, 1, 'absent')
     expect(entry.status).toBe('absent')
     expect(entry.recordId).not.toBeNull()
+  })
+
+  it('allows a teacher to enroll a student in their own subject', () => {
+    resetStore()
+    const enrollment = enrollStudentInSubject('teacher', 2, {
+      subjectId: 1,
+      studentId: 5,
+    })
+    expect(enrollment.subjectId).toBe(1)
+    expect(enrollment.student.id).toBe(5)
+
+    const dashboard = getTeacherDashboard(2)
+    const subjectRoster = dashboard.subjectEnrollments.find((subject) => subject.subjectId === 1)
+    expect(subjectRoster?.students.some((student) => student.id === 5)).toBe(true)
+  })
+
+  it('allows check-in only after a student is actively enrolled in the subject', () => {
+    resetStore()
+    expect(() => checkInStudent(5, 'UPHSL-IT401-0524')).toThrow('Student is not enrolled in this subject')
+
+    enrollStudentInSubject('teacher', 2, {
+      subjectId: 1,
+      studentId: 5,
+    })
+
+    const result = checkInStudent(5, 'UPHSL-IT401-0524')
+    expect(result.success).toBe(true)
+  })
+
+  it('sorts teacher attendance entries alphabetically by student name', () => {
+    resetStore()
+    const dashboard = getTeacherDashboard(2)
+    const names = dashboard.attendanceEntries.map((entry) => entry.studentName)
+    expect(names).toEqual([...names].sort((left, right) => left.localeCompare(right)))
+  })
+
+  it('does not allow admins to edit attendance status', () => {
+    resetStore()
+    expect(() => upsertAttendanceStatus('admin', 3, 1, 1, 'present')).toThrow('Only teachers can update attendance status')
   })
 })

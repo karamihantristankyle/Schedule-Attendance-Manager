@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ClipboardCheck } from 'lucide-react'
-import type { AttendanceManagementEntry, AttendanceStatus } from '../../shared/types'
+import type { AttendanceManagementEntry, AttendanceStatus, Subject } from '../../shared/types'
 
 interface AttendanceStatusManagerProps {
   title: string
   subtitle: string
+  subjects: Subject[]
   entries: AttendanceManagementEntry[]
   isSaving: boolean
   feedback?: string | null
@@ -16,18 +17,58 @@ const statusOptions: AttendanceStatus[] = ['present', 'late', 'absent']
 export function AttendanceStatusManager({
   title,
   subtitle,
+  subjects,
   entries,
   isSaving,
   feedback,
   onSave,
 }: AttendanceStatusManagerProps) {
   const [draftStatuses, setDraftStatuses] = useState<Record<string, AttendanceStatus>>({})
+  const [selectedSubjectId, setSelectedSubjectId] = useState<number>(subjects[0]?.id ?? 0)
+
+  useEffect(() => {
+    if (subjects.length === 0) {
+      setSelectedSubjectId(0)
+      return
+    }
+
+    setSelectedSubjectId((current) => (subjects.some((subject) => subject.id === current) ? current : subjects[0].id))
+  }, [subjects])
+
+  const filteredEntries = useMemo(() => {
+    const latestEntries = new Map<number, AttendanceManagementEntry>()
+
+    entries
+      .filter((entry) => entry.subjectId === selectedSubjectId)
+      .forEach((entry) => {
+        const existing = latestEntries.get(entry.studentId)
+
+        if (!existing) {
+          latestEntries.set(entry.studentId, entry)
+          return
+        }
+
+        const shouldReplace =
+          (entry.sessionStatus === 'open' && existing.sessionStatus !== 'open')
+          || (entry.sessionStatus === existing.sessionStatus && entry.sessionDate > existing.sessionDate)
+
+        if (shouldReplace) {
+          latestEntries.set(entry.studentId, entry)
+        }
+      })
+
+    return Array.from(latestEntries.values()).sort((left, right) => left.studentName.localeCompare(right.studentName))
+  }, [entries, selectedSubjectId])
+
+  const selectedSubject = subjects.find((subject) => subject.id === selectedSubjectId) ?? null
 
   useEffect(() => {
     setDraftStatuses(
-      Object.fromEntries(entries.map((entry) => [entry.entryKey, entry.status])),
+      Object.fromEntries(
+        filteredEntries.map((entry) => [entry.entryKey, entry.status]),
+      ),
     )
-  }, [entries])
+  }, [filteredEntries])
 
   return (
     <section className="rounded-[32px] bg-white p-6 shadow-[0_18px_50px_rgba(14,42,87,0.08)]">
@@ -42,15 +83,34 @@ export function AttendanceStatusManager({
         </div>
       </div>
 
-      <div className="mt-6 space-y-4">
-        {entries.map((entry) => (
+      <div className="mt-6 grid gap-4 md:grid-cols-[minmax(0,20rem)_1fr]">
+        <label className="space-y-2">
+          <span className="text-sm font-semibold text-slate-700">Choose subject</span>
+          <select
+            value={selectedSubjectId}
+            onChange={(event) => setSelectedSubjectId(Number(event.target.value))}
+            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none"
+          >
+            {subjects.map((subject) => (
+              <option key={subject.id} value={subject.id}>
+                {subject.code} - {subject.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="rounded-[24px] border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-500">
+          {selectedSubject
+            ? `Editing attendance for ${selectedSubject.code}. Only enrolled students appear here.`
+            : 'No subject selected.'}
+        </div>
+      </div>
+
+      <div className="mt-6 max-h-[42rem] space-y-5 overflow-y-auto pr-1">
+        {filteredEntries.length > 0 ? filteredEntries.map((entry) => (
           <article key={entry.entryKey} className="rounded-[24px] border border-slate-100 bg-slate-50 p-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="font-bold text-slate-900">{entry.studentName}</p>
-                <p className="text-sm text-slate-500">
-                  {entry.subjectCode} • {entry.subjectName}
-                </p>
                 <p className="mt-2 text-xs uppercase tracking-[0.2em] text-slate-400">
                   {entry.sessionDate} • {entry.room} • {entry.sessionStatus}
                 </p>
@@ -86,7 +146,11 @@ export function AttendanceStatusManager({
               {entry.timeIn ? `Recorded at ${new Date(entry.timeIn).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}` : 'No time-in yet. Saving will create or update the attendance record.'}
             </div>
           </article>
-        ))}
+        )) : (
+          <div className="rounded-[24px] border border-slate-100 bg-slate-50 px-4 py-5 text-sm text-slate-500">
+            No enrolled students with attendance entries are available for this subject yet.
+          </div>
+        )}
       </div>
 
       {feedback ? <p className="mt-4 text-sm text-slate-500">{feedback}</p> : null}

@@ -5,6 +5,7 @@ import type {
   AttendanceManagementEntry,
   AttendanceRecord,
   AttendanceStatus,
+  EnrollStudentInput,
   CreateUserInput,
   CreateSubjectInput,
   AttendanceSession,
@@ -77,6 +78,9 @@ const getUserById = (userId: number): DemoUser => {
   return user
 }
 
+const getActiveEnrollmentsForSubject = (subjectId: number) =>
+  state.enrollments.filter((enrollment) => enrollment.subjectId === subjectId && enrollment.status === 'active')
+
 const toHistoryItem = (record: AttendanceRecord): AttendanceHistoryItem => {
   const session = state.sessions.find((item) => item.id === record.attendanceSessionId)
   if (!session) {
@@ -141,12 +145,17 @@ const getAttendanceEntries = (options?: { teacherId?: number }): AttendanceManag
       return enrolledStudents.map((student) => toAttendanceManagementEntry(session, student))
     })
     .sort((left, right) => {
-      const dateCompare = right.sessionDate.localeCompare(left.sessionDate)
-      if (dateCompare !== 0) {
-        return dateCompare
+      const studentCompare = left.studentName.localeCompare(right.studentName)
+      if (studentCompare !== 0) {
+        return studentCompare
       }
 
-      return left.studentName.localeCompare(right.studentName)
+      const subjectCompare = left.subjectCode.localeCompare(right.subjectCode)
+      if (subjectCompare !== 0) {
+        return subjectCompare
+      }
+
+      return right.sessionDate.localeCompare(left.sessionDate)
     })
 }
 
@@ -213,7 +222,13 @@ export const getStudentDashboard = (studentId: number): StudentDashboardData => 
 
 export const getTeacherDashboard = (teacherId: number): TeacherDashboardData => {
   const user = withoutPassword(getUserById(teacherId))
-  const managedSubjects = state.subjects.filter((subject) => subject.teacherId === teacherId)
+  const managedSubjects = state.subjects
+    .filter((subject) => subject.teacherId === teacherId)
+    .sort((left, right) => left.code.localeCompare(right.code))
+  const students = state.users
+    .filter((entry) => entry.role === 'student')
+    .map(withoutPassword)
+    .sort((left, right) => formatName(left.firstName, left.lastName).localeCompare(formatName(right.firstName, right.lastName)))
   const classes = state.schedules
     .filter((schedule) => getSubjectById(schedule.subjectId).teacherId === teacherId)
     .map((schedule) => ({
@@ -235,6 +250,15 @@ export const getTeacherDashboard = (teacherId: number): TeacherDashboardData => 
     .find((session) => session.subject.teacherId === teacherId) ?? null
 
   const recentRecords = state.records
+    .filter((record) => {
+      const session = state.sessions.find((item) => item.id === record.attendanceSessionId)
+      if (!session) {
+        return false
+      }
+      const schedule = getScheduleById(session.scheduleId)
+      const subject = getSubjectById(schedule.subjectId)
+      return subject.teacherId === teacherId
+    })
     .slice()
     .reverse()
     .map((record) => {
@@ -244,6 +268,15 @@ export const getTeacherDashboard = (teacherId: number): TeacherDashboardData => 
         studentName: formatName(student.firstName, student.lastName),
       }
     })
+
+  const subjectEnrollments = managedSubjects.map((subject) => ({
+    subjectId: subject.id,
+    subjectCode: subject.code,
+    subjectName: subject.name,
+    students: getActiveEnrollmentsForSubject(subject.id)
+      .map((enrollment) => withoutPassword(getUserById(enrollment.studentId)))
+      .sort((left, right) => formatName(left.firstName, left.lastName).localeCompare(formatName(right.firstName, right.lastName))),
+  }))
 
   const report = classes.map((schedule) => {
     const sessions = state.sessions.filter((session) => session.scheduleId === schedule.id)
@@ -265,10 +298,12 @@ export const getTeacherDashboard = (teacherId: number): TeacherDashboardData => 
   return {
     user,
     managedSubjects,
+    students,
+    subjectEnrollments,
     classes,
     activeSession,
     recentRecords,
-    attendanceEntries: getAttendanceEntries({ teacherId }).slice(0, 8),
+    attendanceEntries: getAttendanceEntries({ teacherId }),
     report,
   }
 }
@@ -486,6 +521,48 @@ export const createUser = (role: string, actorId: number, payload: CreateUserInp
   return teacher
 }
 
+export const enrollStudentInSubject = (role: string, actorId: number, payload: EnrollStudentInput) => {
+  if (role !== 'teacher') {
+    throw new Error('Only teachers can enroll students')
+  }
+
+  const subject = getSubjectById(payload.subjectId)
+  if (subject.teacherId !== actorId) {
+    throw new Error('Teachers can only enroll students in their own subjects')
+  }
+
+  const student = getUserById(payload.studentId)
+  if (student.role !== 'student') {
+    throw new Error('Only student accounts can be enrolled')
+  }
+
+  const existingEnrollment = state.enrollments.find(
+    (enrollment) => enrollment.subjectId === payload.subjectId && enrollment.studentId === payload.studentId,
+  )
+
+  if (existingEnrollment?.status === 'active') {
+    throw new Error('Student is already enrolled in this subject')
+  }
+
+  if (existingEnrollment) {
+    existingEnrollment.status = 'active'
+  } else {
+    state.enrollments.push({
+      id: state.enrollments.length + 1,
+      subjectId: payload.subjectId,
+      studentId: payload.studentId,
+      status: 'active',
+    })
+  }
+
+  return {
+    subjectId: subject.id,
+    subjectCode: subject.code,
+    subjectName: subject.name,
+    student: withoutPassword(student),
+  }
+}
+
 export const upsertAttendanceStatus = (
   role: string,
   actorId: number,
@@ -493,8 +570,8 @@ export const upsertAttendanceStatus = (
   studentId: number,
   status: AttendanceStatus,
 ) => {
-  if (role !== 'teacher' && role !== 'admin') {
-    throw new Error('Only teachers and admins can update attendance status')
+  if (role !== 'teacher') {
+    throw new Error('Only teachers can update attendance status')
   }
 
   const session = state.sessions.find((item) => item.id === sessionId)
@@ -505,7 +582,7 @@ export const upsertAttendanceStatus = (
   const schedule = getScheduleById(session.scheduleId)
   const subject = getSubjectById(schedule.subjectId)
 
-  if (role === 'teacher' && subject.teacherId !== actorId) {
+  if (subject.teacherId !== actorId) {
     throw new Error('Teachers can only update attendance for their own subjects')
   }
 
@@ -546,7 +623,9 @@ export const checkInStudent = (studentId: number, qrToken: string) => {
 
   const schedule = getScheduleById(session.scheduleId)
   const subject = getSubjectById(schedule.subjectId)
-  const enrolled = state.enrollments.some((item) => item.studentId === studentId && item.subjectId === subject.id)
+  const enrolled = state.enrollments.some(
+    (item) => item.studentId === studentId && item.subjectId === subject.id && item.status === 'active',
+  )
   if (!enrolled) {
     throw new Error('Student is not enrolled in this subject')
   }

@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from 'express'
 import {
   checkInStudent,
+  enrollStudentInSubject,
   getAttendanceHistory,
   getTeacherDashboard,
   openAttendanceSession,
@@ -52,6 +53,25 @@ router.patch('/status', (req: Request, res: Response) => {
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unable to update attendance status'
+    res.status(400).json({ success: false, message })
+  }
+})
+
+router.post('/enroll', (req: Request, res: Response) => {
+  const role = String(req.body.role ?? '')
+  const actorId = Number(req.body.actorId ?? 0)
+  const subjectId = Number(req.body.subjectId ?? 0)
+  const studentId = Number(req.body.studentId ?? 0)
+
+  try {
+    const enrollment = enrollStudentInSubject(role, actorId, { subjectId, studentId })
+    res.status(200).json({
+      success: true,
+      message: 'Student enrolled successfully',
+      enrollment,
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unable to enroll student'
     res.status(400).json({ success: false, message })
   }
 })

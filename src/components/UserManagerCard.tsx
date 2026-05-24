@@ -70,8 +70,6 @@ export function UserManagerCard({ isSubmitting, feedback, onSubmit }: UserManage
           </select>
         </label>
 
-        <div className="hidden md:block" />
-
         <label className="space-y-2">
           <span className="text-sm font-semibold text-slate-700">Name</span>
           <input
@@ -81,12 +79,6 @@ export function UserManagerCard({ isSubmitting, feedback, onSubmit }: UserManage
             placeholder={form.role === 'student' ? 'Andrea Santos' : 'Lia Ramos'}
           />
         </label>
-
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
-          {form.role === 'student'
-            ? 'Add the student name and student number.'
-            : 'Add the teacher name only. Login email is generated automatically.'}
-        </div>
 
         {form.role === 'student' ? (
           <label className="space-y-2 md:col-span-2">

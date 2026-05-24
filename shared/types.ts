@@ -108,6 +108,11 @@ export interface CreateUserInput {
   studentNumber?: string
 }
 
+export interface EnrollStudentInput {
+  subjectId: number
+  studentId: number
+}
+
 export interface StudentDashboardData {
   user: User
   stats: {
@@ -124,6 +129,13 @@ export interface StudentDashboardData {
 export interface TeacherDashboardData {
   user: User
   managedSubjects: Subject[]
+  students: User[]
+  subjectEnrollments: Array<{
+    subjectId: number
+    subjectCode: string
+    subjectName: string
+    students: User[]
+  }>
   classes: Array<Schedule & { subject: Subject }>
   activeSession: (AttendanceSession & { subject: Subject; room: string }) | null
   recentRecords: Array<AttendanceHistoryItem & { studentName: string }>

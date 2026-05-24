@@ -2,10 +2,11 @@ import { useEffect, useMemo, useState } from 'react'
 import { BarChart3, Copy, QrCode, TimerReset } from 'lucide-react'
 import { AttendanceStatusManager } from '@/components/AttendanceStatusManager'
 import { DashboardShell } from '@/components/DashboardShell'
+import { EnrollmentManagerCard } from '@/components/EnrollmentManagerCard'
 import { ScheduleManagerCard } from '@/components/ScheduleManagerCard'
 import { StatCard } from '@/components/StatCard'
 import { StatusBadge } from '@/components/StatusBadge'
-import { createSchedule, getTeacherDashboard, openSession, updateAttendanceStatus } from '@/services/api'
+import { createSchedule, enrollStudent, getTeacherDashboard, openSession, updateAttendanceStatus } from '@/services/api'
 import { useAuthStore } from '@/store/useAuthStore'
 import { formatAttendanceRate, getStatusTone } from '@/utils/attendance'
 import type { TeacherDashboardData } from '../../shared/types'
@@ -14,8 +15,10 @@ export default function TeacherDashboard() {
   const user = useAuthStore((state) => state.user)
   const [data, setData] = useState<TeacherDashboardData | null>(null)
   const [scheduleFeedback, setScheduleFeedback] = useState<string | null>(null)
+  const [enrollmentFeedback, setEnrollmentFeedback] = useState<string | null>(null)
   const [attendanceFeedback, setAttendanceFeedback] = useState<string | null>(null)
   const [isCreatingSchedule, setIsCreatingSchedule] = useState(false)
+  const [isEnrollingStudent, setIsEnrollingStudent] = useState(false)
   const [isSavingAttendance, setIsSavingAttendance] = useState(false)
   const tokenSegments = useMemo(
     () => data?.activeSession?.qrToken.split('-').filter(Boolean) ?? [],
@@ -50,14 +53,14 @@ export default function TeacherDashboard() {
 
   return (
     <DashboardShell title="Teacher Dashboard" subtitle="Open attendance sessions, share QR access, and monitor class participation.">
-      <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
-        <div className="space-y-6">
-          <section className="grid gap-4 md:grid-cols-3">
-            <StatCard label="Assigned Classes" value={String(data.classes.length)} hint="Subjects currently handled by this faculty account" />
-            <StatCard label="Present Records" value={String(totals.presentCount)} hint="Successful student attendance across sessions" />
-            <StatCard label="Best Rate" value={formatAttendanceRate(totals.attendanceRate)} hint="Highest subject attendance performance" />
-          </section>
+      <section className="grid gap-4 md:grid-cols-3">
+        <StatCard label="Assigned Classes" value={String(data.classes.length)} hint="Subjects currently handled by this faculty account" />
+        <StatCard label="Present Records" value={String(totals.presentCount)} hint="Successful student attendance across sessions" />
+        <StatCard label="Best Rate" value={formatAttendanceRate(totals.attendanceRate)} hint="Highest subject attendance performance" />
+      </section>
 
+      <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_1fr]">
+        <div className="space-y-6">
           <ScheduleManagerCard
             title="Create schedules for your subjects"
             subtitle="Teachers can now add class schedule slots directly for the subjects they handle."
@@ -76,6 +79,26 @@ export default function TeacherDashboard() {
                 setScheduleFeedback(message)
               } finally {
                 setIsCreatingSchedule(false)
+              }
+            }}
+          />
+
+          <EnrollmentManagerCard
+            subjects={data.subjectEnrollments}
+            availableStudents={data.students}
+            isSubmitting={isEnrollingStudent}
+            feedback={enrollmentFeedback}
+            onEnroll={async (payload) => {
+              setIsEnrollingStudent(true)
+              try {
+                await enrollStudent(user.role, user.id, payload)
+                setEnrollmentFeedback('Student enrolled successfully. The roster and attendance controls have been refreshed.')
+                await refreshDashboard()
+              } catch (error) {
+                const message = error instanceof Error ? error.message : 'Unable to enroll student'
+                setEnrollmentFeedback(message)
+              } finally {
+                setIsEnrollingStudent(false)
               }
             }}
           />
@@ -110,33 +133,6 @@ export default function TeacherDashboard() {
                     <span>{item.dayOfWeek}</span>
                     <span>{item.startTime} - {item.endTime}</span>
                     <span>{item.room}</span>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </section>
-
-          <section className="rounded-[32px] bg-white p-6 shadow-[0_18px_50px_rgba(14,42,87,0.08)]">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#3E73C7]">Subject Reports</p>
-                <h2 className="mt-2 text-2xl font-black text-[#0E2A57]">Attendance performance</h2>
-              </div>
-              <BarChart3 className="h-8 w-8 text-[#1F4E9B]" />
-            </div>
-            <div className="mt-6 grid max-h-[28rem] gap-4 overflow-y-auto pr-1">
-              {data.report.map((item) => (
-                <article key={item.scheduleId} className="rounded-[24px] border border-slate-100 bg-slate-50 p-5">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="font-black text-slate-900">{item.subjectCode}</p>
-                      <p className="text-sm text-slate-500">{item.subjectName}</p>
-                    </div>
-                    <StatusBadge label={`${item.attendanceRate}%`} tone="blue" />
-                  </div>
-                  <div className="mt-4 flex flex-wrap gap-6 text-sm text-slate-600">
-                    <span>Present: {item.presentCount}</span>
-                    <span>Late: {item.lateCount}</span>
                   </div>
                 </article>
               ))}
@@ -192,31 +188,61 @@ export default function TeacherDashboard() {
             )}
           </section>
 
-          <AttendanceStatusManager
-            title="Edit attendance status"
-            subtitle="Adjust present, late, or absent values for students in your tracked sessions."
-            entries={data.attendanceEntries}
-            isSaving={isSavingAttendance}
-            feedback={attendanceFeedback}
-            onSave={async (entry, status) => {
-              setIsSavingAttendance(true)
-              try {
-                await updateAttendanceStatus(user.role, user.id, {
-                  sessionId: entry.sessionId,
-                  studentId: entry.studentId,
-                  status,
-                })
-                setAttendanceFeedback(`Updated ${entry.studentName} to ${status}.`)
-                await refreshDashboard()
-              } catch (error) {
-                const message = error instanceof Error ? error.message : 'Unable to update attendance status'
-                setAttendanceFeedback(message)
-              } finally {
-                setIsSavingAttendance(false)
-              }
-            }}
-          />
+          <section className="rounded-[32px] bg-white p-6 shadow-[0_18px_50px_rgba(14,42,87,0.08)]">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#3E73C7]">Subject Reports</p>
+                <h2 className="mt-2 text-2xl font-black text-[#0E2A57]">Attendance performance</h2>
+              </div>
+              <BarChart3 className="h-8 w-8 text-[#1F4E9B]" />
+            </div>
+            <div className="mt-6 grid max-h-[28rem] gap-4 overflow-y-auto pr-1">
+              {data.report.map((item) => (
+                <article key={item.scheduleId} className="rounded-[24px] border border-slate-100 bg-slate-50 p-5">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="font-black text-slate-900">{item.subjectCode}</p>
+                      <p className="text-sm text-slate-500">{item.subjectName}</p>
+                    </div>
+                    <StatusBadge label={`${item.attendanceRate}%`} tone="blue" />
+                  </div>
+                  <div className="mt-4 flex flex-wrap gap-6 text-sm text-slate-600">
+                    <span>Present: {item.presentCount}</span>
+                    <span>Late: {item.lateCount}</span>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
         </div>
+      </div>
+
+      <div className="mt-6">
+        <AttendanceStatusManager
+          title="Teacher-only attendance control"
+          subtitle="Choose a subject, then edit attendance only for the students enrolled in that class."
+          subjects={data.managedSubjects}
+          entries={data.attendanceEntries}
+          isSaving={isSavingAttendance}
+          feedback={attendanceFeedback}
+          onSave={async (entry, status) => {
+            setIsSavingAttendance(true)
+            try {
+              await updateAttendanceStatus(user.role, user.id, {
+                sessionId: entry.sessionId,
+                studentId: entry.studentId,
+                status,
+              })
+              setAttendanceFeedback(`Updated ${entry.studentName} to ${status}.`)
+              await refreshDashboard()
+            } catch (error) {
+              const message = error instanceof Error ? error.message : 'Unable to update attendance status'
+              setAttendanceFeedback(message)
+            } finally {
+              setIsSavingAttendance(false)
+            }
+          }}
+        />
       </div>
     </DashboardShell>
   )

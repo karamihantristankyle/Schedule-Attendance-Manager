@@ -2,6 +2,7 @@ import type {
   AdminDashboardData,
   AttendanceManagementEntry,
   CheckInResponse,
+  EnrollStudentInput,
   CreateScheduleInput,
   CreateSubjectInput,
   CreateUserInput,
@@ -77,5 +78,11 @@ export const updateAttendanceStatus = (
 ) =>
   request<{ success: boolean; message: string }>('/api/attendance/status', {
     method: 'PATCH',
+    body: JSON.stringify({ role, actorId, ...payload }),
+  })
+
+export const enrollStudent = (role: UserRole, actorId: number, payload: EnrollStudentInput) =>
+  request<{ success: boolean; message: string }>('/api/attendance/enroll', {
+    method: 'POST',
     body: JSON.stringify({ role, actorId, ...payload }),
   })
