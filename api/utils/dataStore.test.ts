@@ -1,0 +1,65 @@
+import { describe, expect, it } from 'vitest'
+import { checkInStudent, createSchedule, createSubject, openAttendanceSession, resetStore, upsertAttendanceStatus } from './dataStore'
+
+describe('attendance store', () => {
+  it('opens a new session when schedule has no active session', () => {
+    resetStore()
+    const session = openAttendanceSession(2)
+    expect(session.status).toBe('open')
+    expect(session.qrToken).toContain('IT402')
+  })
+
+  it('records attendance for a valid enrolled student', () => {
+    resetStore()
+    const result = checkInStudent(1, 'UPHSL-IT401-0524')
+    expect(result.success).toBe(true)
+    expect(result.message).toContain('checked in')
+  })
+
+  it('accepts token input with mixed case and spaces', () => {
+    resetStore()
+    const result = checkInStudent(1, '  uphsl-it401-0524  ')
+    expect(result.success).toBe(true)
+    expect(result.record?.status).toBe('late')
+  })
+
+  it('returns a confirmed result for duplicate submissions', () => {
+    resetStore()
+    checkInStudent(1, 'UPHSL-IT401-0524')
+    const result = checkInStudent(1, 'UPHSL-IT401-0524')
+    expect(result.success).toBe(true)
+    expect(result.alreadyRecorded).toBe(true)
+    expect(result.message).toContain('already confirmed')
+  })
+
+  it('allows a teacher to create a schedule for an assigned subject', () => {
+    resetStore()
+    const schedule = createSchedule('teacher', 2, {
+      subjectId: 1,
+      room: 'lab 5',
+      dayOfWeek: 'Friday',
+      startTime: '13:00',
+      endTime: '14:30',
+    })
+    expect(schedule.room).toBe('LAB 5')
+    expect(schedule.subject.code).toBe('IT 401')
+  })
+
+  it('allows an admin to create a new subject for a teacher', () => {
+    resetStore()
+    const subject = createSubject('admin', 3, {
+      code: 'it 403',
+      name: 'Network Security',
+      teacherId: 2,
+    })
+    expect(subject.code).toBe('IT 403')
+    expect(subject.teacherId).toBe(2)
+  })
+
+  it('creates an attendance record when a teacher marks a student absent', () => {
+    resetStore()
+    const entry = upsertAttendanceStatus('teacher', 2, 1, 1, 'absent')
+    expect(entry.status).toBe('absent')
+    expect(entry.recordId).not.toBeNull()
+  })
+})
