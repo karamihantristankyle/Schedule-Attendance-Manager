@@ -61,7 +61,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-[#F4F7FC] px-6 py-8">
-      <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-6xl overflow-hidden rounded-[36px] bg-white shadow-[0_30px_80px_rgba(14,42,87,0.18)] lg:grid-cols-[0.95fr_1.05fr]">
+      <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-5xl overflow-hidden rounded-[36px] bg-white shadow-[0_30px_80px_rgba(14,42,87,0.18)]">
         <section className="relative overflow-hidden bg-[#0E2A57] p-8 text-white md:p-12">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(62,115,199,0.45),_transparent_34%),radial-gradient(circle_at_bottom,_rgba(242,178,51,0.2),_transparent_30%)]" />
           <div className="relative space-y-8">
@@ -71,7 +71,7 @@ export default function LoginPage() {
             </div>
 
             <div className="space-y-3 text-sm text-blue-100">
-              <p>Use the demo accounts below or beside this form to open the student, teacher, or admin experience.</p>
+              <p>Use the demo accounts below this panel to open the student, teacher, or admin experience.</p>
               <p>Every role is connected to live Express endpoints using the UPHSL blue-and-gold design system.</p>
             </div>
 
@@ -89,7 +89,7 @@ export default function LoginPage() {
           </div>
         </section>
 
-        <section className="flex items-center p-8 md:p-12">
+        <section className="border-t border-slate-100 p-8 md:p-12">
           <div className="mx-auto w-full max-w-xl space-y-8">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#3E73C7]">Account Access</p>
