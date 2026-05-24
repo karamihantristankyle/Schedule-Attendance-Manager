@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { checkInStudent, createSchedule, createSubject, openAttendanceSession, resetStore, upsertAttendanceStatus } from './dataStore'
+import { checkInStudent, createSchedule, createSubject, createUser, openAttendanceSession, resetStore, upsertAttendanceStatus } from './dataStore'
 
 describe('attendance store', () => {
   it('opens a new session when schedule has no active session', () => {
@@ -54,6 +54,31 @@ describe('attendance store', () => {
     })
     expect(subject.code).toBe('IT 403')
     expect(subject.teacherId).toBe(2)
+  })
+
+  it('allows an admin to create a new student with a student number', () => {
+    resetStore()
+    const user = createUser('admin', 3, {
+      role: 'student',
+      firstName: 'Kyle',
+      lastName: 'Morales',
+      studentNumber: '2024-00999',
+    })
+    expect(user.role).toBe('student')
+    expect(user.studentNumber).toBe('2024-00999')
+    expect(user.email).toContain('kyle.morales')
+  })
+
+  it('allows an admin to create a new teacher with generated login details from a single name field', () => {
+    resetStore()
+    const user = createUser('admin', 3, {
+      role: 'teacher',
+      firstName: 'Lia',
+      lastName: '',
+    })
+    expect(user.role).toBe('teacher')
+    expect(user.employeeNumber).toContain('FAC-')
+    expect(user.email).toContain('lia')
   })
 
   it('creates an attendance record when a teacher marks a student absent', () => {

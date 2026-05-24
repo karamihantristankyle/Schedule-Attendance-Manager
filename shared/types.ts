@@ -101,6 +101,13 @@ export interface CreateSubjectInput {
   teacherId: number
 }
 
+export interface CreateUserInput {
+  role: Extract<UserRole, 'student' | 'teacher'>
+  firstName: string
+  lastName: string
+  studentNumber?: string
+}
+
 export interface StudentDashboardData {
   user: User
   stats: {

@@ -61,43 +61,59 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-[#F4F7FC] px-6 py-8">
-      <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-5xl overflow-hidden rounded-[36px] bg-white shadow-[0_30px_80px_rgba(14,42,87,0.18)]">
-        <section className="relative overflow-hidden bg-[#0E2A57] p-8 text-white md:p-12">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(62,115,199,0.45),_transparent_34%),radial-gradient(circle_at_bottom,_rgba(242,178,51,0.2),_transparent_30%)]" />
-          <div className="relative space-y-8">
-            <div>
-              <p className="text-xs uppercase tracking-[0.38em] text-blue-100">UPHSL Attendance Suite</p>
-              <h1 className="mt-4 max-w-md text-4xl font-black leading-tight">Sign in to manage attendance in real time.</h1>
-            </div>
-
-            <div className="space-y-3 text-sm text-blue-100">
-              <p>Use the demo accounts below this panel to open the student, teacher, or admin experience.</p>
-              <p>Every role is connected to live Express endpoints using the UPHSL blue-and-gold design system.</p>
-            </div>
-
-            <div className="grid gap-4">
-              {[
-                'Automatic session creation from schedules',
-                'QR-based student attendance flow',
-                'Teacher monitoring and admin analytics',
-              ].map((item) => (
-                <div key={item} className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm">
-                  {item}
+      <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-6xl overflow-hidden rounded-[36px] bg-white shadow-[0_30px_80px_rgba(14,42,87,0.18)]">
+        <section className="p-8 md:p-12">
+          <div className="grid gap-8 lg:grid-cols-[0.92fr_1.08fr]">
+            <div className="space-y-6">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#3E73C7]">Account Access</p>
+                <h2 className="mt-2 text-3xl font-black text-slate-900">Welcome back</h2>
+                <p className="mt-3 max-w-md text-sm leading-6 text-slate-500">Sign in first, then switch between the student, teacher, and admin demo accounts from the directory beside or below this form.</p>
+                <div className="mt-4 inline-flex flex-wrap items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                  <span className="font-semibold">Demo password</span>
+                  <span className="rounded-full bg-white/80 px-3 py-1 font-medium text-amber-950 shadow-sm">password123</span>
                 </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="border-t border-slate-100 p-8 md:p-12">
-          <div className="mx-auto w-full max-w-xl space-y-8">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#3E73C7]">Account Access</p>
-              <h2 className="mt-2 text-3xl font-black text-slate-900">Welcome back</h2>
-              <div className="mt-4 flex flex-wrap items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                <span className="font-semibold">Demo password</span>
-                <span className="rounded-full bg-white/80 px-3 py-1 font-medium text-amber-950 shadow-sm">password123</span>
               </div>
+
+              <form className="space-y-5" onSubmit={handleSubmit}>
+                <label className="block space-y-2">
+                  <span className="text-sm font-semibold text-slate-700">Email</span>
+                  <div className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 transition focus-within:border-[#3E73C7] focus-within:bg-white">
+                    <Mail className="h-4 w-4 text-slate-400" />
+                    <input
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
+                      className="w-full bg-transparent px-3 py-4 text-sm outline-none"
+                      placeholder="name@uphsl.edu"
+                    />
+                  </div>
+                </label>
+
+                <label className="block space-y-2">
+                  <span className="text-sm font-semibold text-slate-700">Password</span>
+                  <div className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 transition focus-within:border-[#3E73C7] focus-within:bg-white">
+                    <LockKeyhole className="h-4 w-4 text-slate-400" />
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                      className="w-full bg-transparent px-3 py-4 text-sm outline-none"
+                      placeholder="Enter password"
+                    />
+                  </div>
+                </label>
+
+                {error ? <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p> : null}
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#F2B233] px-5 py-4 text-sm font-bold text-slate-950 transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <UserCircle2 className="h-4 w-4" />
+                  {isSubmitting ? 'Signing in...' : 'Sign In'}
+                </button>
+              </form>
             </div>
 
             <div className="space-y-5">
@@ -119,7 +135,7 @@ export default function LoginPage() {
                         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                           <div className="min-w-0">
                             <p className="text-lg font-bold text-slate-900">{account.label}</p>
-                            <p className="mt-1 text-sm text-slate-500">{account.email}</p>
+                            <p className="mt-1 break-all text-sm text-slate-500">{account.email}</p>
                           </div>
 
                           <div className="grid gap-2 sm:grid-cols-2 lg:min-w-[260px]">
@@ -150,46 +166,34 @@ export default function LoginPage() {
                 </section>
               ))}
             </div>
+          </div>
+        </section>
 
-            <form className="space-y-5" onSubmit={handleSubmit}>
-              <label className="block space-y-2">
-                <span className="text-sm font-semibold text-slate-700">Email</span>
-                <div className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4">
-                  <Mail className="h-4 w-4 text-slate-400" />
-                  <input
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    className="w-full bg-transparent px-3 py-4 text-sm outline-none"
-                    placeholder="name@uphsl.edu"
-                  />
-                </div>
-              </label>
+        <section className="relative overflow-hidden border-t border-white/10 bg-[#0E2A57] p-8 text-white md:p-12">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(62,115,199,0.45),_transparent_34%),radial-gradient(circle_at_bottom,_rgba(242,178,51,0.2),_transparent_30%)]" />
+          <div className="relative space-y-8">
+            <div>
+              <p className="text-xs uppercase tracking-[0.38em] text-blue-100">UPHSL Attendance Suite</p>
+              <h1 className="mt-4 max-w-2xl text-4xl font-black leading-tight">Sign in to manage attendance in real time.</h1>
+            </div>
 
-              <label className="block space-y-2">
-                <span className="text-sm font-semibold text-slate-700">Password</span>
-                <div className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4">
-                  <LockKeyhole className="h-4 w-4 text-slate-400" />
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    className="w-full bg-transparent px-3 py-4 text-sm outline-none"
-                    placeholder="Enter password"
-                  />
-                </div>
-              </label>
-
-              {error ? <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p> : null}
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#F2B233] px-5 py-4 text-sm font-bold text-slate-950 transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <UserCircle2 className="h-4 w-4" />
-                {isSubmitting ? 'Signing in...' : 'Sign In'}
-              </button>
-            </form>
+            <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr] lg:items-start">
+              <div className="space-y-3 text-sm leading-7 text-blue-100">
+                <p>Use the account directory above to open the student, teacher, or admin experience without retyping credentials.</p>
+                <p>Every role is connected to live Express endpoints using the UPHSL blue-and-gold design system and seeded academic data for demos.</p>
+              </div>
+              <div className="grid gap-4">
+                {[
+                  'Automatic session creation from schedules',
+                  'QR-based student attendance flow',
+                  'Teacher monitoring and admin analytics',
+                ].map((item) => (
+                  <div key={item} className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm">
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </section>
       </div>

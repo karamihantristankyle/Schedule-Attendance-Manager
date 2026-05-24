@@ -70,7 +70,7 @@ export function SubjectManagerCard({
           >
             {teachers.map((teacher) => (
               <option key={teacher.id} value={teacher.id}>
-                {teacher.firstName} {teacher.lastName}
+                {`${teacher.firstName} ${teacher.lastName}`.trim()}
               </option>
             ))}
           </select>

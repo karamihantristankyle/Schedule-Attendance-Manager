@@ -4,6 +4,7 @@ import dotenv from 'dotenv'
 import authRoutes from './routes/auth.js'
 import scheduleRoutes from './routes/schedules.js'
 import subjectRoutes from './routes/subjects.js'
+import userRoutes from './routes/users.js'
 import attendanceRoutes from './routes/attendance.js'
 import reportRoutes from './routes/reports.js'
 import analyticsRoutes from './routes/analytics.js'
@@ -19,6 +20,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 app.use('/api/auth', authRoutes)
 app.use('/api/schedules', scheduleRoutes)
 app.use('/api/subjects', subjectRoutes)
+app.use('/api/users', userRoutes)
 app.use('/api/attendance', attendanceRoutes)
 app.use('/api/reports', reportRoutes)
 app.use('/api/analytics', analyticsRoutes)

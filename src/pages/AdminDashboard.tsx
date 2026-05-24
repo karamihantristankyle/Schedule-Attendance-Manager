@@ -4,7 +4,8 @@ import { DashboardShell } from '@/components/DashboardShell'
 import { StatCard } from '@/components/StatCard'
 import { StatusBadge } from '@/components/StatusBadge'
 import { SubjectManagerCard } from '@/components/SubjectManagerCard'
-import { createSubject, getAdminDashboard } from '@/services/api'
+import { UserManagerCard } from '@/components/UserManagerCard'
+import { createSubject, createUser, getAdminDashboard } from '@/services/api'
 import { useAuthStore } from '@/store/useAuthStore'
 import { getStatusTone } from '@/utils/attendance'
 import type { AdminDashboardData } from '../../shared/types'
@@ -12,7 +13,9 @@ import type { AdminDashboardData } from '../../shared/types'
 export default function AdminDashboard() {
   const user = useAuthStore((state) => state.user)
   const [data, setData] = useState<AdminDashboardData | null>(null)
+  const [userFeedback, setUserFeedback] = useState<string | null>(null)
   const [subjectFeedback, setSubjectFeedback] = useState<string | null>(null)
+  const [isCreatingUser, setIsCreatingUser] = useState(false)
   const [isCreatingSubject, setIsCreatingSubject] = useState(false)
 
   useEffect(() => {
@@ -31,6 +34,7 @@ export default function AdminDashboard() {
   const studentUsers = data.users.filter((entry) => entry.role === 'student')
   const teacherUsers = data.users.filter((entry) => entry.role === 'teacher')
   const adminUsers = data.users.filter((entry) => entry.role === 'admin')
+  const formatUserName = (firstName: string, lastName: string) => `${firstName} ${lastName}`.trim()
 
   return (
     <DashboardShell title="Admin Dashboard" subtitle="Manage academic data, review analytics, and monitor attendance health.">
@@ -66,10 +70,10 @@ export default function AdminDashboard() {
                       tone={group.tone}
                     />
                   </div>
-                  <div className="mt-4 space-y-3">
+                  <div className="mt-4 max-h-[24rem] space-y-3 overflow-y-auto pr-1">
                     {group.users.map((entry) => (
                       <article key={entry.id} className="rounded-[20px] border border-slate-200 bg-white px-4 py-3">
-                        <p className="font-bold text-slate-900">{entry.firstName} {entry.lastName}</p>
+                        <p className="font-bold text-slate-900">{formatUserName(entry.firstName, entry.lastName)}</p>
                         <p className="mt-1 break-all text-sm text-slate-500">{entry.email}</p>
                       </article>
                     ))}
@@ -78,6 +82,25 @@ export default function AdminDashboard() {
               ))}
             </div>
           </section>
+
+          <UserManagerCard
+            isSubmitting={isCreatingUser}
+            feedback={userFeedback}
+            onSubmit={async (payload) => {
+              setIsCreatingUser(true)
+              try {
+                const response = await createUser(user.role, user.id, payload)
+                const createdLabel = formatUserName(response.user.firstName, response.user.lastName)
+                setUserFeedback(`${createdLabel} added successfully. Login email: ${response.user.email} | Default password: password123`)
+                await refreshDashboard()
+              } catch (error) {
+                const message = error instanceof Error ? error.message : 'Unable to create user'
+                setUserFeedback(message)
+              } finally {
+                setIsCreatingUser(false)
+              }
+            }}
+          />
 
           <SubjectManagerCard
             teachers={data.teachers}
@@ -106,7 +129,7 @@ export default function AdminDashboard() {
               </div>
               <CalendarRange className="h-8 w-8 text-[#1F4E9B]" />
             </div>
-            <div className="mt-6 grid gap-4">
+            <div className="mt-6 grid max-h-[38rem] gap-4 overflow-y-auto pr-1">
               {data.schedules.map((item) => (
                 <article key={item.id} className="rounded-[24px] border border-slate-100 bg-slate-50 p-5">
                   <div className="flex flex-wrap items-center justify-between gap-3">
@@ -158,7 +181,7 @@ export default function AdminDashboard() {
               </div>
               <BookOpenText className="h-8 w-8 text-[#1F4E9B]" />
             </div>
-            <div className="mt-6 space-y-4">
+            <div className="mt-6 max-h-[38rem] space-y-4 overflow-y-auto pr-1">
               {data.sessions.map((item) => (
                 <article key={item.id} className="rounded-[24px] border border-slate-100 bg-slate-50 p-4">
                   <div className="flex flex-wrap items-center justify-between gap-3">

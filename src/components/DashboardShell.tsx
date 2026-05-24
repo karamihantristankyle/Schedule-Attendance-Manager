@@ -1,6 +1,6 @@
-﻿import { type ReactNode } from 'react'
+import { type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Bell, LogOut, Shield } from 'lucide-react'
+import { LogOut, Shield } from 'lucide-react'
 import { useAuthStore } from '@/store/useAuthStore'
 
 interface DashboardShellProps {
@@ -13,6 +13,7 @@ export function DashboardShell({ title, subtitle, children }: DashboardShellProp
   const navigate = useNavigate()
   const user = useAuthStore((state) => state.user)
   const clearSession = useAuthStore((state) => state.clearSession)
+  const userName = user ? `${user.firstName} ${user.lastName}`.trim() : 'Guest'
 
   return (
     <div className="min-h-screen bg-[#F4F7FC] text-slate-900">
@@ -25,16 +26,13 @@ export function DashboardShell({ title, subtitle, children }: DashboardShellProp
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <Link to="/" className="rounded-full border border-white/15 px-4 py-2 text-sm text-white/90 transition hover:border-[#F2B233] hover:text-[#F2B233]">
+            <Link to="/" className="rounded-full border border-white/15 px-4 py-2 text-sm font-medium text-white/90 transition hover:border-[#F2B233] hover:text-[#F2B233]">
               Home
             </Link>
             <div className="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm text-white">
               <Shield className="h-4 w-4 text-[#F2B233]" />
-              {user ? `${user.firstName} ${user.lastName}` : 'Guest'}
+              {userName}
             </div>
-            <button className="rounded-full bg-[#F2B233] p-2 text-slate-950">
-              <Bell className="h-4 w-4" />
-            </button>
             <button
               onClick={() => {
                 clearSession()

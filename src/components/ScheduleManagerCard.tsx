@@ -88,7 +88,7 @@ export function ScheduleManagerCard({
             >
               {teachers.map((teacher) => (
                 <option key={teacher.id} value={teacher.id}>
-                  {teacher.firstName} {teacher.lastName}
+                  {`${teacher.firstName} ${teacher.lastName}`.trim()}
                 </option>
               ))}
             </select>
@@ -159,7 +159,7 @@ export function ScheduleManagerCard({
         <div className="md:col-span-2">
           {selectedTeacher ? (
             <div className="mb-3 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-[#1F4E9B]">
-              This schedule will appear under <span className="font-semibold">{selectedTeacher.firstName} {selectedTeacher.lastName}</span>'s teacher dashboard.
+              This schedule will appear under <span className="font-semibold">{`${selectedTeacher.firstName} ${selectedTeacher.lastName}`.trim()}</span>'s teacher dashboard.
             </div>
           ) : null}
           <button

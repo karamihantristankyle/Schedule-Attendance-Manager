@@ -88,7 +88,7 @@ export default function TeacherDashboard() {
               </div>
               <TimerReset className="h-8 w-8 text-[#1F4E9B]" />
             </div>
-            <div className="mt-6 space-y-4">
+            <div className="mt-6 max-h-[28rem] space-y-4 overflow-y-auto pr-1">
               {data.classes.map((item) => (
                 <article key={item.id} className="rounded-[24px] border border-slate-100 bg-slate-50 p-5">
                   <div className="flex flex-wrap items-start justify-between gap-3">
@@ -124,7 +124,7 @@ export default function TeacherDashboard() {
               </div>
               <BarChart3 className="h-8 w-8 text-[#1F4E9B]" />
             </div>
-            <div className="mt-6 grid gap-4">
+            <div className="mt-6 grid max-h-[28rem] gap-4 overflow-y-auto pr-1">
               {data.report.map((item) => (
                 <article key={item.scheduleId} className="rounded-[24px] border border-slate-100 bg-slate-50 p-5">
                   <div className="flex items-center justify-between gap-3">

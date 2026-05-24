@@ -115,9 +115,9 @@ export default function StudentDashboard() {
                     <StatusBadge label={data.activeSession.status} tone={getStatusTone(data.activeSession.status)} />
                   </div>
                   <div className="mt-4 flex flex-wrap gap-2">
-                    {tokenSegments.map((segment) => (
+                    {tokenSegments.map((segment, index) => (
                       <span
-                        key={`${segment}-${tokenSegments.indexOf(segment)}`}
+                        key={`${segment}-${index}`}
                         className="rounded-2xl border border-white/15 bg-white/10 px-3 py-2 text-sm font-black tracking-[0.18em] text-[#F2B233]"
                       >
                         {segment}
@@ -229,7 +229,7 @@ export default function StudentDashboard() {
               </div>
               <CircleCheckBig className="h-8 w-8 text-[#1F4E9B]" />
             </div>
-            <div className="mt-6 space-y-4">
+            <div className="mt-6 max-h-[38rem] space-y-4 overflow-y-auto pr-1">
               {data.history.map((item) => (
                 <article key={item.id} className="rounded-[24px] border border-slate-100 bg-slate-50 p-4">
                   <div className="flex flex-wrap items-center justify-between gap-3">

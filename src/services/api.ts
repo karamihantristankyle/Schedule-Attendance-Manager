@@ -4,6 +4,7 @@ import type {
   CheckInResponse,
   CreateScheduleInput,
   CreateSubjectInput,
+  CreateUserInput,
   LoginResponse,
   StudentDashboardData,
   TeacherDashboardData,
@@ -55,6 +56,12 @@ export const createSubject = (role: UserRole, actorId: number, payload: CreateSu
   request<{ success: boolean; message: string }>('/api/subjects', {
     method: 'POST',
     body: JSON.stringify({ role, actorId, ...payload }),
+  })
+
+export const createUser = (role: UserRole, actorId: number, payload: CreateUserInput) =>
+  request<{ success: boolean; message: string; user: { email: string; firstName: string; lastName: string } }>('/api/users', {
+    method: 'POST',
+    body: JSON.stringify({ role, actorId, userRole: payload.role, ...payload }),
   })
 
 export const checkIn = (studentId: number, qrToken: string) =>

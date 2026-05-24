@@ -5,6 +5,7 @@ import type {
   AttendanceManagementEntry,
   AttendanceRecord,
   AttendanceStatus,
+  CreateUserInput,
   CreateSubjectInput,
   AttendanceSession,
   CreateScheduleInput,
@@ -24,6 +25,28 @@ const today = '2026-05-24'
 const normalizeToken = (value: string) => value.trim().toUpperCase().replace(/\s+/g, '')
 const normalizeDay = (value: string) => value.trim()
 const normalizeSubjectCode = (value: string) => value.trim().toUpperCase()
+const normalizeName = (value: string) => value.trim().replace(/\s+/g, ' ')
+const formatName = (firstName: string, lastName: string) => `${firstName} ${lastName}`.trim()
+
+const slugifyName = (value: string) =>
+  normalizeName(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '')
+    .trim()
+    .replace(/\s+/g, '.')
+
+const createUniqueEmail = (firstName: string, lastName: string) => {
+  const base = `${slugifyName(firstName)}.${slugifyName(lastName)}`.replace(/^\.+|\.+$/g, '') || `user${state.users.length + 1}`
+  let email = `${base}@uphsl.edu`
+  let suffix = 2
+
+  while (state.users.some((user) => user.email.toLowerCase() === email.toLowerCase())) {
+    email = `${base}${suffix}@uphsl.edu`
+    suffix += 1
+  }
+
+  return email
+}
 
 const withoutPassword = (user: DemoUser): User => {
   const { password: _password, ...safeUser } = user
@@ -85,7 +108,7 @@ const toAttendanceManagementEntry = (session: AttendanceSession, student: DemoUs
     recordId: existingRecord?.id ?? null,
     sessionId: session.id,
     studentId: student.id,
-    studentName: `${student.firstName} ${student.lastName}`,
+    studentName: formatName(student.firstName, student.lastName),
     subjectId: subject.id,
     subjectCode: subject.code,
     subjectName: subject.name,
@@ -218,7 +241,7 @@ export const getTeacherDashboard = (teacherId: number): TeacherDashboardData => 
       const student = getUserById(record.studentId)
       return {
         ...toHistoryItem(record),
-        studentName: `${student.firstName} ${student.lastName}`,
+        studentName: formatName(student.firstName, student.lastName),
       }
     })
 
@@ -270,7 +293,7 @@ export const getAdminDashboard = (): AdminDashboardData => {
       return {
         ...schedule,
         subject,
-        teacherName: `${teacher.firstName} ${teacher.lastName}`,
+        teacherName: formatName(teacher.firstName, teacher.lastName),
       }
     }),
     sessions: state.sessions.map((session) => {
@@ -362,7 +385,7 @@ export const createSchedule = (role: string, actorId: number, payload: CreateSch
   return {
     ...schedule,
     subject,
-    teacherName: `${teacher.firstName} ${teacher.lastName}`,
+    teacherName: formatName(teacher.firstName, teacher.lastName),
   }
 }
 
@@ -397,6 +420,70 @@ export const createSubject = (role: string, actorId: number, payload: CreateSubj
   state.subjects.push(subject)
 
   return subject
+}
+
+export const createUser = (role: string, actorId: number, payload: CreateUserInput) => {
+  if (role !== 'admin') {
+    throw new Error('Only admins can add users')
+  }
+
+  const actor = getUserById(actorId)
+  if (actor.role !== 'admin') {
+    throw new Error('Only admins can add users')
+  }
+
+  const firstName = normalizeName(payload.firstName)
+  const lastName = normalizeName(payload.lastName)
+  if (!firstName) {
+    throw new Error('Name is required')
+  }
+
+  if (payload.role !== 'student' && payload.role !== 'teacher') {
+    throw new Error('Only student and teacher accounts can be created here')
+  }
+
+  const nextId = state.users.length + 1
+  const email = createUniqueEmail(firstName, lastName)
+
+  if (payload.role === 'student') {
+    const studentNumber = normalizeName(payload.studentNumber ?? '')
+    if (!studentNumber) {
+      throw new Error('Student number is required')
+    }
+
+    const existingStudent = state.users.find((user) => user.studentNumber === studentNumber)
+    if (existingStudent) {
+      throw new Error('Student number already exists')
+    }
+
+    const student: DemoUser = {
+      id: nextId,
+      firstName,
+      lastName,
+      email,
+      password: 'password123',
+      role: 'student',
+      studentNumber,
+      course: 'BS Information Technology',
+      yearLevel: 1,
+    }
+
+    state.users.push(student)
+    return student
+  }
+
+  const teacher: DemoUser = {
+    id: nextId,
+    firstName,
+    lastName,
+    email,
+    password: 'password123',
+    role: 'teacher',
+    employeeNumber: `FAC-${String(200 + nextId).padStart(4, '0')}`,
+  }
+
+  state.users.push(teacher)
+  return teacher
 }
 
 export const upsertAttendanceStatus = (
