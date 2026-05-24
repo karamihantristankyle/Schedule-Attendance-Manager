@@ -11,9 +11,21 @@ import { useAuthStore } from '@/store/useAuthStore'
 import { formatAttendanceRate, getStatusTone } from '@/utils/attendance'
 import type { TeacherDashboardData } from '../../shared/types'
 
+const teacherSections = [
+  { id: 'schedule', label: 'Schedule Manager' },
+  { id: 'enrollment', label: 'Enrollment Manager' },
+  { id: 'sessions', label: 'Class Sessions' },
+  { id: 'live', label: 'Live QR' },
+  { id: 'reports', label: 'Reports' },
+  { id: 'attendance', label: 'Attendance Control' },
+] as const
+
+type TeacherSectionId = (typeof teacherSections)[number]['id']
+
 export default function TeacherDashboard() {
   const user = useAuthStore((state) => state.user)
   const [data, setData] = useState<TeacherDashboardData | null>(null)
+  const [activeSection, setActiveSection] = useState<TeacherSectionId>('schedule')
   const [scheduleFeedback, setScheduleFeedback] = useState<string | null>(null)
   const [enrollmentFeedback, setEnrollmentFeedback] = useState<string | null>(null)
   const [attendanceFeedback, setAttendanceFeedback] = useState<string | null>(null)
@@ -59,8 +71,27 @@ export default function TeacherDashboard() {
         <StatCard label="Best Rate" value={formatAttendanceRate(totals.attendanceRate)} hint="Highest subject attendance performance" />
       </section>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_1fr]">
-        <div className="space-y-6">
+      <section className="mt-6 rounded-[32px] bg-white p-4 shadow-[0_18px_50px_rgba(14,42,87,0.08)]">
+        <div className="flex flex-wrap gap-3">
+          {teacherSections.map((section) => (
+            <button
+              key={section.id}
+              type="button"
+              onClick={() => setActiveSection(section.id)}
+              className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                activeSection === section.id
+                  ? 'bg-[#1F4E9B] text-white shadow-[0_10px_24px_rgba(31,78,155,0.22)]'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              {section.label}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <div className="mt-6">
+        {activeSection === 'schedule' ? (
           <ScheduleManagerCard
             title="Create schedules for your subjects"
             subtitle="Teachers can now add class schedule slots directly for the subjects they handle."
@@ -82,7 +113,9 @@ export default function TeacherDashboard() {
               }
             }}
           />
+        ) : null}
 
+        {activeSection === 'enrollment' ? (
           <EnrollmentManagerCard
             subjects={data.subjectEnrollments}
             availableStudents={data.students}
@@ -102,7 +135,9 @@ export default function TeacherDashboard() {
               }
             }}
           />
+        ) : null}
 
+        {activeSection === 'sessions' ? (
           <section className="rounded-[32px] bg-white p-6 shadow-[0_18px_50px_rgba(14,42,87,0.08)]">
             <div className="flex items-center justify-between">
               <div>
@@ -138,9 +173,9 @@ export default function TeacherDashboard() {
               ))}
             </div>
           </section>
-        </div>
+        ) : null}
 
-        <div className="space-y-6">
+        {activeSection === 'live' ? (
           <section className="rounded-[32px] bg-gradient-to-br from-[#0E2A57] via-[#1F4E9B] to-[#3E73C7] p-6 text-white shadow-[0_20px_60px_rgba(14,42,87,0.24)]">
             <div className="flex items-center justify-between">
               <div>
@@ -187,7 +222,9 @@ export default function TeacherDashboard() {
               <p className="mt-5 rounded-[24px] bg-white/10 px-4 py-4 text-sm text-blue-50">Open a class session to generate the current QR token.</p>
             )}
           </section>
+        ) : null}
 
+        {activeSection === 'reports' ? (
           <section className="rounded-[32px] bg-white p-6 shadow-[0_18px_50px_rgba(14,42,87,0.08)]">
             <div className="flex items-center justify-between">
               <div>
@@ -214,35 +251,35 @@ export default function TeacherDashboard() {
               ))}
             </div>
           </section>
-        </div>
-      </div>
+        ) : null}
 
-      <div className="mt-6">
-        <AttendanceStatusManager
-          title="Teacher-only attendance control"
-          subtitle="Choose a subject, then edit attendance only for the students enrolled in that class."
-          subjects={data.managedSubjects}
-          entries={data.attendanceEntries}
-          isSaving={isSavingAttendance}
-          feedback={attendanceFeedback}
-          onSave={async (entry, status) => {
-            setIsSavingAttendance(true)
-            try {
-              await updateAttendanceStatus(user.role, user.id, {
-                sessionId: entry.sessionId,
-                studentId: entry.studentId,
-                status,
-              })
-              setAttendanceFeedback(`Updated ${entry.studentName} to ${status}.`)
-              await refreshDashboard()
-            } catch (error) {
-              const message = error instanceof Error ? error.message : 'Unable to update attendance status'
-              setAttendanceFeedback(message)
-            } finally {
-              setIsSavingAttendance(false)
-            }
-          }}
-        />
+        {activeSection === 'attendance' ? (
+          <AttendanceStatusManager
+            title="Teacher-only attendance control"
+            subtitle="Choose a subject, then edit attendance only for the students enrolled in that class."
+            subjects={data.managedSubjects}
+            entries={data.attendanceEntries}
+            isSaving={isSavingAttendance}
+            feedback={attendanceFeedback}
+            onSave={async (entry, status) => {
+              setIsSavingAttendance(true)
+              try {
+                await updateAttendanceStatus(user.role, user.id, {
+                  sessionId: entry.sessionId,
+                  studentId: entry.studentId,
+                  status,
+                })
+                setAttendanceFeedback(`Updated ${entry.studentName} to ${status}.`)
+                await refreshDashboard()
+              } catch (error) {
+                const message = error instanceof Error ? error.message : 'Unable to update attendance status'
+                setAttendanceFeedback(message)
+              } finally {
+                setIsSavingAttendance(false)
+              }
+            }}
+          />
+        ) : null}
       </div>
     </DashboardShell>
   )

@@ -87,7 +87,7 @@ export function UserManagerCard({ isSubmitting, feedback, onSubmit }: UserManage
               value={form.studentNumber ?? ''}
               onChange={(event) => setForm((current) => ({ ...current, studentNumber: event.target.value }))}
               className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none"
-              placeholder="2024-00999"
+              placeholder="22-1975-239"
             />
           </label>
         ) : null}

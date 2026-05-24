@@ -10,9 +10,21 @@ import { useAuthStore } from '@/store/useAuthStore'
 import { getStatusTone } from '@/utils/attendance'
 import type { AdminDashboardData } from '../../shared/types'
 
+const adminSections = [
+  { id: 'users', label: 'Users' },
+  { id: 'user-manager', label: 'Add Users' },
+  { id: 'subject-manager', label: 'Add Subjects' },
+  { id: 'schedules', label: 'Schedules' },
+  { id: 'analytics', label: 'Analytics' },
+  { id: 'sessions', label: 'Sessions' },
+] as const
+
+type AdminSectionId = (typeof adminSections)[number]['id']
+
 export default function AdminDashboard() {
   const user = useAuthStore((state) => state.user)
   const [data, setData] = useState<AdminDashboardData | null>(null)
+  const [activeSection, setActiveSection] = useState<AdminSectionId>('users')
   const [userFeedback, setUserFeedback] = useState<string | null>(null)
   const [subjectFeedback, setSubjectFeedback] = useState<string | null>(null)
   const [isCreatingUser, setIsCreatingUser] = useState(false)
@@ -45,8 +57,27 @@ export default function AdminDashboard() {
         <StatCard label="Attendance Rate" value={`${data.summary.attendanceRate}%`} hint="Present and late records across sessions" />
       </section>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
-        <div className="space-y-6">
+      <section className="mt-6 rounded-[32px] bg-white p-4 shadow-[0_18px_50px_rgba(14,42,87,0.08)]">
+        <div className="flex flex-wrap gap-3">
+          {adminSections.map((section) => (
+            <button
+              key={section.id}
+              type="button"
+              onClick={() => setActiveSection(section.id)}
+              className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                activeSection === section.id
+                  ? 'bg-[#1F4E9B] text-white shadow-[0_10px_24px_rgba(31,78,155,0.22)]'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              {section.label}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <div className="mt-6">
+        {activeSection === 'users' ? (
           <section className="rounded-[32px] bg-white p-6 shadow-[0_18px_50px_rgba(14,42,87,0.08)]">
             <div className="flex items-center justify-between">
               <div>
@@ -82,7 +113,9 @@ export default function AdminDashboard() {
               ))}
             </div>
           </section>
+        ) : null}
 
+        {activeSection === 'user-manager' ? (
           <UserManagerCard
             isSubmitting={isCreatingUser}
             feedback={userFeedback}
@@ -101,7 +134,9 @@ export default function AdminDashboard() {
               }
             }}
           />
+        ) : null}
 
+        {activeSection === 'subject-manager' ? (
           <SubjectManagerCard
             teachers={data.teachers}
             isSubmitting={isCreatingSubject}
@@ -120,7 +155,9 @@ export default function AdminDashboard() {
               }
             }}
           />
+        ) : null}
 
+        {activeSection === 'schedules' ? (
           <section className="rounded-[32px] bg-white p-6 shadow-[0_18px_50px_rgba(14,42,87,0.08)]">
             <div className="flex items-center justify-between">
               <div>
@@ -148,9 +185,9 @@ export default function AdminDashboard() {
               ))}
             </div>
           </section>
-        </div>
+        ) : null}
 
-        <div className="space-y-6">
+        {activeSection === 'analytics' ? (
           <section className="rounded-[32px] bg-gradient-to-br from-[#0E2A57] via-[#1F4E9B] to-[#3E73C7] p-6 text-white shadow-[0_20px_60px_rgba(14,42,87,0.24)]">
             <div className="flex items-center justify-between">
               <div>
@@ -172,7 +209,9 @@ export default function AdminDashboard() {
               </div>
             </div>
           </section>
+        ) : null}
 
+        {activeSection === 'sessions' ? (
           <section className="rounded-[32px] bg-white p-6 shadow-[0_18px_50px_rgba(14,42,87,0.08)]">
             <div className="flex items-center justify-between">
               <div>
@@ -196,8 +235,7 @@ export default function AdminDashboard() {
               ))}
             </div>
           </section>
-
-        </div>
+        ) : null}
       </div>
     </DashboardShell>
   )

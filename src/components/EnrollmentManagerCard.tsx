@@ -27,6 +27,7 @@ export function EnrollmentManagerCard({
   onEnroll,
 }: EnrollmentManagerCardProps) {
   const [selectedSubjectId, setSelectedSubjectId] = useState<number>(subjects[0]?.subjectId ?? 0)
+  const [rosterSubjectId, setRosterSubjectId] = useState<number>(subjects[0]?.subjectId ?? 0)
   const [selectedStudentId, setSelectedStudentId] = useState<number>(0)
 
   useEffect(() => {
@@ -38,11 +39,19 @@ export function EnrollmentManagerCard({
     setSelectedSubjectId((current) =>
       subjects.some((subject) => subject.subjectId === current) ? current : subjects[0].subjectId,
     )
+    setRosterSubjectId((current) =>
+      subjects.some((subject) => subject.subjectId === current) ? current : subjects[0].subjectId,
+    )
   }, [subjects])
 
   const selectedSubject = useMemo(
     () => subjects.find((subject) => subject.subjectId === selectedSubjectId) ?? null,
     [selectedSubjectId, subjects],
+  )
+
+  const selectedRosterSubject = useMemo(
+    () => subjects.find((subject) => subject.subjectId === rosterSubjectId) ?? null,
+    [rosterSubjectId, subjects],
   )
 
   const enrollableStudents = useMemo(() => {
@@ -131,13 +140,23 @@ export function EnrollmentManagerCard({
 
       <div className="mt-6 rounded-[28px] border border-slate-100 bg-slate-50 p-4">
         <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="font-black text-slate-900">{selectedSubject?.subjectCode ?? 'No subject selected'}</p>
-            <p className="text-sm text-slate-500">{selectedSubject?.subjectName ?? 'Choose a subject to manage its roster.'}</p>
-          </div>
+          <label className="w-full max-w-sm space-y-2">
+            <span className="text-sm font-semibold text-slate-700">View enrolled students by subject</span>
+            <select
+              value={rosterSubjectId}
+              onChange={(event) => setRosterSubjectId(Number(event.target.value))}
+              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none"
+            >
+              {subjects.map((subject) => (
+                <option key={subject.subjectId} value={subject.subjectId}>
+                  {subject.subjectCode} - {subject.subjectName}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
         <div className="mt-4 max-h-[18rem] space-y-3 overflow-y-auto pr-1">
-          {selectedSubject?.students.length ? selectedSubject.students.map((student) => (
+          {selectedRosterSubject?.students.length ? selectedRosterSubject.students.map((student) => (
             <article key={student.id} className="rounded-[20px] border border-slate-200 bg-white px-4 py-3">
               <p className="font-bold text-slate-900">{formatUserName(student)}</p>
               <p className="mt-1 text-sm text-slate-500">
